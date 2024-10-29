@@ -1,0 +1,6 @@
+scenedetect
+supervision
+ultralytics
+google-cloud-speech
+google-auth
+pydub
