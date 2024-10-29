@@ -4,7 +4,7 @@ CIS 5810 Final Project, dev by Tim Kao and Ankita Kalkar
  - python3.X
  - ffmpeg
    - Mac installation: `brew install ffmpeg`
- - GCP Speech API service account key, named `cis-speech-sa-key.json`
+ - GCP Speech API service account key, named `cis5810-speech-sa-key.json`
 ## Setup
  1. `cd src/`
     1. (Optional) Create virtual env: `python3 -m venv venv`
