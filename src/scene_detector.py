@@ -1,12 +1,12 @@
 import supervision as sv
 from ultralytics import YOLO
 import numpy as np
-from scenedetect import detect, AdaptiveDetector, split_video_ffmpeg
+from scenedetect import detect, AdaptiveDetector, video_splitter
 
 # Load YOLO model
 model = YOLO('yolov8n.pt')
 
-def split_scenes(scene_path, out_dir='/'):
+def split_scenes(scene_path, out_dir="/"):
     """Splits an input video into scenes and outputs them in directory specified
 
     Args:
@@ -17,8 +17,14 @@ def split_scenes(scene_path, out_dir='/'):
     """
     print("Splitting scenes...")
     scene_list = detect(scene_path, AdaptiveDetector())
-    split_video_ffmpeg(scene_path, scene_list, output_dir=out_dir)
-    print(f"Successfully generated {len(scene_list)} scenes in directory'{out_dir}'")
+    video_splitter.split_video_ffmpeg(
+        input_video_path=scene_path, 
+        scene_list=scene_list,  
+        show_progress=True,
+        output_dir=out_dir,
+        show_output=True
+    )
+    print(f"Successfully generated {len(scene_list)} scenes in directory: '{out_dir}'")
     return scene_list
 
 def detect_objects(scene_path):
@@ -35,9 +41,7 @@ def detect_objects(scene_path):
         detections = sv.Detections.from_ultralytics(results)
         detections = tracker.update_with_detections(detections)
         raw_detections.append(detections)
-
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
-
         annotated_frame = box_annotator.annotate(
             scene=frame.copy(), detections=detections)
         annotated_frame = label_annotator.annotate(
