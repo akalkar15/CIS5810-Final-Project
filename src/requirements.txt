@@ -6,3 +6,4 @@ google-auth==2.20.0
 pydub==0.25.1
 opencv-python==4.7.0.68
 webcolors==24.8.0
+openai==1.54.3

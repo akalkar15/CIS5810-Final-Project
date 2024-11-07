@@ -4,7 +4,7 @@ from google.oauth2 import service_account
 from pydub import AudioSegment
 
 credentials = service_account.Credentials.from_service_account_file(
-    '../cis5810-speech-sa-key.json'
+    'cis5810-speech-sa-key.json'
 )
 
 client = speech.SpeechClient(credentials=credentials)
