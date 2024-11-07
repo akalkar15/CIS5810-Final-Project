@@ -1,6 +1,7 @@
 from scene_detector import split_scenes, detect_objects
 from transcription import mp4_to_wav, transcribe
 from light_analysis import analyze_lighting_and_color
+from flow import get_direction
 import argparse
 import os
 
@@ -8,7 +9,7 @@ os.path.join(os.getcwd(), 'src')
 
 def process_video(filepath):
     if '/' in filepath:
-        file_name = filepath.split('/')[1].replace('.mp4', '')
+        file_name = filepath.split('/')[2].replace('.mp4', '')
     else:
         file_name = filepath.replace('.mp4', '')
     scene_list = split_scenes(filepath, "data/scenes/") # list of scene names, numbered starting at 001
@@ -16,7 +17,8 @@ def process_video(filepath):
     # TODO: handle detection information, Detection Object API: https://supervision.roboflow.com/detection/core/#supervision.detection.core.Detections
     transcription = transcribe(mp4_to_wav(f"data/scenes/{file_name}-Scene-001.mp4")) # TODO: process multiple scenes
     analysis = analyze_lighting_and_color(f"data/scenes/{file_name}-Scene-001.mp4")
-    print(analysis)
+    direction = get_direction(f"data/scenes/{file_name}-Scene-001.mp4")
+    #print(direction)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process video file information.")
