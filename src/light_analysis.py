@@ -137,5 +137,6 @@ def analyze_lighting_and_color(video_path):
     print("bright: ", brightness_category)
     print("colors: ", color_names)
     mood = describe_mood(brightness_category, rgb_colors)
+    print(f"Finished processing lighting and color for scene {video_path}")
     return mood
   

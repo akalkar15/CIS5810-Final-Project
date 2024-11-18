@@ -7,3 +7,5 @@ pydub==0.25.1
 opencv-python==4.7.0.68
 webcolors==24.8.0
 openai==1.54.3
+deepface==0.0.93
+tf-keras==2.18.0

@@ -2,6 +2,7 @@ import subprocess
 from google.cloud import speech_v1p1beta1 as speech
 from google.oauth2 import service_account
 from pydub import AudioSegment
+import os
 
 credentials = service_account.Credentials.from_service_account_file(
     'cis5810-speech-sa-key.json'
@@ -11,11 +12,11 @@ client = speech.SpeechClient(credentials=credentials)
 
 def mp4_to_wav(file_path):
     file_path = file_path.replace(".mp4", "")
-    subprocess.run(["ffmpeg", "-i", f"{file_path}.mp4", "-ab", "160k", "-ac", "2", "-ar", "44100", "-vn", f"{file_path}.wav"])
+    subprocess.run(["ffmpeg", "-i", f"{file_path}.mp4", "-ab", "160k", "-ac", "2", "-ar", "44100", "-loglevel", "error", "-stats","-vn", f"{file_path}.wav"])
     print(f"Successfully converted {file_path}.mp4 to {file_path}.wav")
     return f"{file_path}.wav"
 
-def transcribe(wav_path):
+def transcribe(file_path):
     """Invokes GCP Speech API to transcribe an audio into text.
 
     Args:
@@ -25,6 +26,7 @@ def transcribe(wav_path):
         str: string transcription of the audio file
     """
     print("Transcribing audio...")
+    wav_path = mp4_to_wav(file_path)
     audio_file = wav_path
 
     # Convert stereo to mono using pydub
@@ -44,5 +46,5 @@ def transcribe(wav_path):
     )
 
     response = client.recognize(config=config, audio=audio)
-    print("Finished transcribing audio")
-    return ". ".join([r.alternatives[0].transcript for r in response.results])
+    print(f"Finished transcribing audio for scene {wav_path}")
+    return ". ".join([r.alternatives[0].transcript for r in response.results if r.alternatives])
