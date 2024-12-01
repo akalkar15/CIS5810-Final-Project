@@ -12,6 +12,14 @@ import json
 
 os.path.join(os.getcwd(), 'src')
 
+def time_to_seconds(time_str):
+    """Convert a time string (hh:mm:ss.sss) to total seconds."""
+    parts = time_str.split(":")
+    hours = int(parts[0])
+    minutes = int(parts[1])
+    seconds = float(parts[2])
+    return hours * 3600 + minutes * 60 + seconds
+
 async def process_single_scene(scene):
     # Run three synchronous functions in parallel for each file
     # futures = [
@@ -35,6 +43,7 @@ async def process_single_scene(scene):
         "face_analysis": results[2],
         "transcription": results[3],
     }
+    
     summary = retrieve_summary(result)
     return summary
 
@@ -44,15 +53,22 @@ async def process_video(filepath):
     else:
         file_name = filepath.replace('.mp4', '')
     time_splits, scene_list = split_scenes(filepath, "data/scenes/") # list of scene names, numbered starting at 001
+    scene_durations = [time_to_seconds(end) - time_to_seconds(start) for start, end in time_splits]
 
+    # Normalize weights
+    total_duration = sum(scene_durations)
+    scene_weights = [duration / total_duration for duration in scene_durations]
     scene_data = {}
 
     # Process scenes in parallel
     tasks = [process_single_scene(scene) for scene in scene_list]
     results = await asyncio.gather(*tasks)
 
-    scene_data = {str(time_range): result for time_range, result in zip(time_splits, results)}
-    
+    scene_data = [
+        {"time_range": time_range, "summary": result, "weight": weight}
+        for time_range, result, weight in zip(time_splits, results, scene_weights)
+    ]
+
     with open("scene_data.json", "w+") as f:
         f.write(json.dumps(scene_data))
 

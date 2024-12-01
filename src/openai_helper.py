@@ -1,6 +1,8 @@
 from openai import OpenAI
+import os
 
 client = OpenAI()
+
 
 SINGLE_SCENE_PROMPT = """**Task:**
 You are provided information about a scene as a json object. The information includes object detections, lighting and color description, facial attributes, and the audio transcription. Using this information, provide a detailed overall summary of the video's content. Be descriptive, especially if there is information about people in the scene.
@@ -21,12 +23,14 @@ Summary:
 """
 
 COMBINE_PROMPT = """**Task:**
-You are provided summaries of a video split by scenes. Each scene is given by its start and end time and its summary. Using this information, combine all of the summaries into a single overall summary of the video's content. The style should be like a synopsis.
+You are provided summaries of a video split by scenes. Each scene is given by its start and end time, its summary, and a weight that indicates its importance. Using this information, combine all the summaries into a single overall summary of the video's content. The style should be like a synopsis.
+- Heavily emphasize the summaries with higher weights.
+- Use the provided weights to determine the importance of each scene in the overall summary.
 - Omit direct mentions of the provided data. Simply use them to describe what is happening in the scene.
 
 Input Schema:
 {
-    (start_time, end_time): "<<short summary of the scene>>"
+    (start_time, end_time): "<<short summary of the scene>> (Weight: <<weight>>)"
 }
 
 **Scene Data**
@@ -45,7 +49,7 @@ def retrieve_summary(scene_data):
             {"role": "system", "content": "You are an intelligent analyst trained on video summarization."},
             {
                 "role": "user",
-                "content": prompt
+                "content": prompt[:128000]
             }
         ]
     )
@@ -56,7 +60,18 @@ def retrieve_summary(scene_data):
 
 def combine_summaries(scene_data):
     print("Retrieving summary from OpenAI using model gpt-4o-mini...")
-    prompt = COMBINE_PROMPT.replace('<<data>>', str(scene_data))
+    weighted_data = {}
+    for scene in scene_data:
+        start, end = scene["time_range"]
+        summary = scene["summary"]
+        weight = scene["weight"]
+        # Include weights in the input data for OpenAI
+        weighted_data[(start, end)] = f"{summary} (Weight: {weight:.2f})"
+
+    # Replace in prompt
+    formatted_data = str(weighted_data).replace("'", '"')  # JSON-like formatting for clarity
+    prompt = COMBINE_PROMPT.replace("<<data>>", formatted_data)
+    
     completion = client.chat.completions.create(
         model="gpt-4o",
         temperature=0.4,

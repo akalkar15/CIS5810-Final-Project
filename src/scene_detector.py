@@ -45,6 +45,10 @@ def detect_objects(scene_path):
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     raw_detections = []
+
+    def forward_fuse(self, x):
+        """Apply fused convolution and activation to input tensor."""
+        return self.act(self.conv(x))
     
     # Callback function to process each frame
     def callback(frame: np.ndarray, index: int) -> np.ndarray:
