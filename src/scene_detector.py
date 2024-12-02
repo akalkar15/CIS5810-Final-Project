@@ -70,11 +70,6 @@ def detect_objects(scene_path):
         callback=callback
     )
     print(f"Finished processing object detections for scene {scene_path}")
-    mapped_detections = [{
-        "bounding_boxes": raw.xyxy.tolist(),
-        "mask": raw.mask.tolist() if raw.mask is not None else None,
-        "classes": [model.model.names[class_id] for class_id in raw.class_id],
-        "tracker_id": raw.tracker_id.tolist(),
-        "data": {k: v.tolist() for k, v in dict(raw.data).items()}
-    } for raw in raw_detections]
-    return mapped_detections
+    mapped_detections = [model.model.names[class_id] for raw in raw_detections for class_id in raw.class_id]
+    return set(mapped_detections)
+    

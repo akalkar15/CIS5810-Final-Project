@@ -9,6 +9,8 @@ import multiprocessing
 import asyncio
 import os
 import json
+from collections import defaultdict
+import easygui
 
 os.path.join(os.getcwd(), 'src')
 
@@ -30,22 +32,29 @@ async def process_single_scene(scene):
         asyncio.to_thread(detect_objects, f"data/scenes/{scene}"),
         asyncio.to_thread(analyze_lighting_and_color, f"data/scenes/{scene}"),
         asyncio.to_thread(get_facial_attributes, f"data/scenes/{scene}"),
-        asyncio.to_thread(transcribe, f"data/scenes/{scene}")
+        asyncio.to_thread(transcribe, f"data/scenes/{scene}"),
     ]
 
     # Wait for all three results for the file
     results = await asyncio.gather(*futures)
 
     # Store results in the dictionary
-    result = {
-        "detections": results[0],
-        "lighting_analysis": results[1],
-        "face_analysis": results[2],
-        "transcription": results[3],
-    }
-    
+    result = {}
+    if results[0]:
+        result['detections'] = results[0]
+    if results[1]:
+        result['lighting_analysis'] = results[1]
+    if results[2]:
+        result['face_analysis'] = results[2]
+    if results[3][0]:
+        result['transcription'] = results[3][0]
+    if results[3][1]:
+        result['soundtrack_analysis'] = results[3][1]
+        print(results[3][1])
+
+    scene_num = int(scene[-7:-4])
     summary = retrieve_summary(result)
-    return summary
+    return summary, scene_num, results[3]
 
 async def process_video(filepath):
     if '/' in filepath:
@@ -64,16 +73,22 @@ async def process_video(filepath):
     tasks = [process_single_scene(scene) for scene in scene_list]
     results = await asyncio.gather(*tasks)
 
-    scene_data = [
-        {"time_range": time_range, "summary": result, "weight": weight}
-        for time_range, result, weight in zip(time_splits, results, scene_weights)
-    ]
+    scene_data = []
+    transcriptions = defaultdict(int)
+    for (time_range, (summary, scene_num, transcription), weight) in zip(time_splits, results, scene_weights):
+        item = {}
+        item['summary'] = summary
+        item['time_range'] = time_range
+        item['weight'] = weight
+        scene_data.append(item)
+        transcriptions[scene_num] = transcription  # Store the transcription
 
     with open("scene_data.json", "w+") as f:
         f.write(json.dumps(scene_data))
 
     # Call GPT for summary
-    overall_summary = combine_summaries(scene_data)
+    overall_summary = combine_summaries(scene_data, transcriptions)
+    print("OVERALL SUMMARY: \n", overall_summary)
     return overall_summary
 
 if __name__ == "__main__":
@@ -88,4 +103,6 @@ if __name__ == "__main__":
     if not filepath or not os.path.exists(filepath):
         print("Missing or invalid required argument: --filepath")
         exit(1)
-    print(asyncio.run(process_video(filepath)))
+
+    summary = asyncio.run(process_video(filepath))
+    easygui.msgbox(summary, title="Summary of Scene")

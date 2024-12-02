@@ -14,6 +14,14 @@ Input Schema:
     "transcription": "<<text-to-speech transcription of the audio>>",
     "lighting_analysis": "<<few words describing the lighting and color of the scene>>",
     "face_analysis": "<<dictionary of face attributes, with keys indicating ids of each identified person>>"
+    "soundtrack_analysis": {
+        "tempo": <<tempo in beats per minute>>,
+        "key": "<<key of the soundtrack>>",
+        "mode": "<<major or minor>>",
+        "dynamics": "<<soft or loud>>",
+        "instrumentation": "<<type of instruments or style of the music>>"
+    }
+
 }
 
 **Scene Data**
@@ -23,10 +31,11 @@ Summary:
 """
 
 COMBINE_PROMPT = """**Task:**
-You are provided summaries of a video split by scenes. Each scene is given by its start and end time, its summary, and a weight that indicates its importance. Using this information, combine all the summaries into a single overall summary of the video's content. The style should be like a synopsis.
+You are provided summaries of a video split by scenes. Each scene is given by its start and end time, its summary, a weight that indicates its importance, and the full transcription of the video. Using this information, combine all the summaries using the data provided into a single overall summary of the video's content. The style should be like a synopsis.
 - Heavily emphasize the summaries with higher weights.
 - Use the provided weights to determine the importance of each scene in the overall summary.
 - Omit direct mentions of the provided data. Simply use them to describe what is happening in the scene.
+- Use as much detail as possible and keep details about the dialogue
 
 Input Schema:
 {
@@ -35,6 +44,9 @@ Input Schema:
 
 **Scene Data**
 <<data>>
+
+**Full Transcription**
+<<transcription>>
 
 Summary:
 """
@@ -49,7 +61,7 @@ def retrieve_summary(scene_data):
             {"role": "system", "content": "You are an intelligent analyst trained on video summarization."},
             {
                 "role": "user",
-                "content": prompt[:128000]
+                "content": prompt
             }
         ]
     )
@@ -58,7 +70,7 @@ def retrieve_summary(scene_data):
         return ""
     return completion.choices[0].message.content
 
-def combine_summaries(scene_data):
+def combine_summaries(scene_data, transcription):
     print("Retrieving summary from OpenAI using model gpt-4o-mini...")
     weighted_data = {}
     for scene in scene_data:
@@ -70,7 +82,9 @@ def combine_summaries(scene_data):
 
     # Replace in prompt
     formatted_data = str(weighted_data).replace("'", '"')  # JSON-like formatting for clarity
+    formatted_transcription = str(transcription).replace("'", '"')
     prompt = COMBINE_PROMPT.replace("<<data>>", formatted_data)
+    prompt = COMBINE_PROMPT.replace("<<transcription>>", formatted_transcription)
     
     completion = client.chat.completions.create(
         model="gpt-4o",

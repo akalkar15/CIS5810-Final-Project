@@ -9,3 +9,4 @@ webcolors==24.8.0
 openai==1.54.3
 deepface==0.0.93
 tf-keras==2.18.0
+librosa==0.10.2

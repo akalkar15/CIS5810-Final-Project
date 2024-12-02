@@ -3,6 +3,8 @@ from google.cloud import speech_v1p1beta1 as speech
 from google.oauth2 import service_account
 from pydub import AudioSegment
 import os
+import librosa
+import numpy as np
 
 credentials = service_account.Credentials.from_service_account_file(
     'cis5810-speech-sa-key.json'
@@ -26,8 +28,7 @@ def transcribe(file_path):
         str: string transcription of the audio file
     """
     print("Transcribing audio...")
-    wav_path = mp4_to_wav(file_path)
-    audio_file = wav_path
+    audio_file  = mp4_to_wav(file_path)
 
     # Convert stereo to mono using pydub
     sound = AudioSegment.from_wav(audio_file)
@@ -46,5 +47,40 @@ def transcribe(file_path):
     )
 
     response = client.recognize(config=config, audio=audio)
-    print(f"Finished transcribing audio for scene {wav_path}")
-    return ". ".join([r.alternatives[0].transcript for r in response.results if r.alternatives])
+    dialogue = ". ".join([r.alternatives[0].transcript for r in response.results if r.alternatives])
+
+    y, sr = librosa.load(audio_file)
+    
+    # Extract tempo
+    tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+    
+    # Extract key and mode
+    chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
+
+    # Average chroma across time
+    chroma_avg = np.mean(chroma, axis=1)
+    
+    # Determine the pitch class with the highest energy
+    pitch_classes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    detected_pitch = pitch_classes[np.argmax(chroma_avg)]
+
+    tonnetz = librosa.feature.tonnetz(y=y, sr=sr)
+    mode = "minor" if np.mean(tonnetz) < 0 else "major"
+    
+    # Analyze dynamics
+    rms = librosa.feature.rms(y=y).mean()
+    dynamics = "soft" if rms < 0.02 else "loud"
+    
+    # Instrumentation analysis (requires a more advanced library like Essentia)
+    instrumentation = "orchestral"  # Placeholder
+    
+    music = {
+        "tempo": round(tempo[0]),
+        "key": detected_pitch,
+        "mode": mode,
+        "dynamics": dynamics,
+        "instrumentation": instrumentation,
+    }
+    print(f"Finished transcribing audio for scene {file_path}")
+
+    return dialogue, music
