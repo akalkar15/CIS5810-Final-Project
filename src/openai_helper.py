@@ -6,11 +6,12 @@ client = OpenAI()
 
 SINGLE_SCENE_PROMPT = """**Task:**
 You are provided information about a scene as a json object. The information includes object detections, lighting and color description, facial attributes, and the audio transcription. Using this information, provide a detailed overall summary of the video's content. Be descriptive, especially if there is information about people in the scene.
+- Be specific about objects that were detected in the scene.
 - Omit direct mentions of the provided data. Simply use them to describe what is happening in the scene.
 
 Input Schema:
 {
-    "detections": [<<list of object detetions within the scene],
+    "detections": [<<list of object detections within the scene; each object is listed with an id>>],
     "transcription": "<<text-to-speech transcription of the audio>>",
     "lighting_analysis": "<<few words describing the lighting and color of the scene>>",
     "face_analysis": "<<dictionary of face attributes, with keys indicating ids of each identified person>>"
@@ -52,7 +53,7 @@ Summary:
 """
 
 def retrieve_summary(scene_data):
-    print("Retrieving summary from OpenAI using model gpt-4o...")
+    print("Retrieving summary from OpenAI using model gpt-4o-mini")
     prompt = SINGLE_SCENE_PROMPT.replace('<<data>>', str(scene_data))
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -71,7 +72,7 @@ def retrieve_summary(scene_data):
     return completion.choices[0].message.content
 
 def combine_summaries(scene_data, transcription):
-    print("Retrieving summary from OpenAI using model gpt-4o-mini...")
+    print("Retrieving summary from OpenAI using model gpt-4o...")
     weighted_data = {}
     for scene in scene_data:
         start, end = scene["time_range"]

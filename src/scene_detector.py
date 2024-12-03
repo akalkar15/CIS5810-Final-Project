@@ -2,6 +2,7 @@ import supervision as sv
 from ultralytics import YOLO
 import numpy as np
 from scenedetect import detect, AdaptiveDetector, video_splitter
+from collections import Counter
 
 import os
 import shutil
@@ -70,6 +71,16 @@ def detect_objects(scene_path):
         callback=callback
     )
     print(f"Finished processing object detections for scene {scene_path}")
-    mapped_detections = [model.model.names[class_id] for raw in raw_detections for class_id in raw.class_id]
-    return set(mapped_detections)
+    mapped_detections = [f"{model.model.names[class_id]}{tid}" for raw in raw_detections for class_id, tid in zip(raw.class_id, raw.tracker_id)]
+    counter = Counter(mapped_detections)
+    total_count = len(mapped_detections)
+    threshold = 0.08
+    # print(set(mapped_detections))
+    # Filter the strings with more than 10% prevalence
+    filtered_detections = [string for string in mapped_detections if counter[string] / total_count > threshold]
+    print(f"Objects for scene {scene_path}: ", set(filtered_detections))
+    return set(filtered_detections)
+
+if __name__ == "__main__":
+    detect_objects("data/scenes/tangled-Scene-016.mp4")
     
